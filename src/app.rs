@@ -1,4 +1,4 @@
-use crate::index::{IndexState, SessionIndex};
+use crate::index::{discover_and_sort_files, index_files, IndexProgress, IndexState, SessionIndex};
 use crate::parser;
 use crate::session::{SearchResult, Session};
 use anyhow::Result;
@@ -463,16 +463,7 @@ fn background_index(index_path: PathBuf, state_path: PathBuf, tx: Sender<IndexMs
     };
 
     // Discover and sort files by mtime (most recent first)
-    let mut files = parser::discover_session_files();
-    files.sort_by(|a, b| {
-        let mtime_a = std::fs::metadata(a)
-            .and_then(|m| m.modified())
-            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-        let mtime_b = std::fs::metadata(b)
-            .and_then(|m| m.modified())
-            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-        mtime_b.cmp(&mtime_a) // Descending (most recent first)
-    });
+    let files = discover_and_sort_files();
 
     let files_to_index: Vec<_> = files
         .iter()
@@ -480,8 +471,7 @@ fn background_index(index_path: PathBuf, state_path: PathBuf, tx: Sender<IndexMs
         .cloned()
         .collect();
 
-    let total = files_to_index.len();
-    if total == 0 {
+    if files_to_index.is_empty() {
         let _ = tx.send(IndexMsg::Done {
             total_sessions: files.len(),
         });
@@ -496,42 +486,35 @@ fn background_index(index_path: PathBuf, state_path: PathBuf, tx: Sender<IndexMs
         }
     };
 
-    for (i, file_path) in files_to_index.iter().enumerate() {
-        // Delete existing documents for this file
-        index.delete_session(&mut writer, file_path);
+    // Progress callback sends to channel
+    let tx_progress = tx.clone();
+    let on_progress = Box::new(move |p: IndexProgress| {
+        let _ = tx_progress.send(IndexMsg::Progress {
+            indexed: p.indexed,
+            total: p.total,
+        });
+    });
 
-        // Parse and index
-        match parser::parse_session_file(file_path) {
-            Ok(session) => {
-                if !session.messages.is_empty() {
-                    let _ = index.index_session(&mut writer, &session);
-                }
-                // Mark as indexed even if empty (so we don't reprocess it)
-                state.mark_indexed(file_path);
-            }
-            Err(_) => {
-                // Skip failed files (they might be incomplete/corrupted)
-                // Don't mark as indexed so we retry next time
-            }
-        }
+    // Reload callback sends to channel
+    let tx_reload = tx.clone();
+    let on_reload = Box::new(move || {
+        let _ = tx_reload.send(IndexMsg::NeedsReload);
+    });
 
-        // Progress update every 50 files
-        if (i + 1) % 50 == 0 || i + 1 == total {
-            let _ = tx.send(IndexMsg::Progress {
-                indexed: i + 1,
-                total,
-            });
-        }
+    let result = index_files(
+        &index,
+        &mut writer,
+        &mut state,
+        &files_to_index,
+        Some(on_progress),
+        Some(on_reload),
+    );
 
-        // Commit and notify for reload every 200 files
-        if (i + 1) % 200 == 0 {
-            let _ = writer.commit();
-            let _ = tx.send(IndexMsg::NeedsReload);
-        }
+    if let Err(e) = result {
+        let _ = tx.send(IndexMsg::Error(format!("Indexing failed: {}", e)));
+        return;
     }
 
-    // Final commit
-    let _ = writer.commit();
     let _ = state.save(&state_path);
 
     let _ = tx.send(IndexMsg::Done {

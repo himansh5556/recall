@@ -34,61 +34,63 @@ pub fn run_search(
 
     let results = index.search(query, limit * 2)?; // Get more to filter
 
+    // Pre-compute query terms once (not per-session)
+    let query_lower = query.to_lowercase();
+    let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
+
     // Convert to output format
     let output = SearchOutput {
         query: query.to_string(),
         results: results
             .into_iter()
             // Filter by source
-            .filter(|r| source.map_or(true, |s| r.session.source == s))
+            .filter(|r| source.is_none_or(|s| r.session.source == s))
             // Filter by time
-            .filter(|r| since_dt.map_or(true, |t| r.session.timestamp >= t))
-            .filter(|r| until_dt.map_or(true, |t| r.session.timestamp <= t))
+            .filter(|r| since_dt.is_none_or(|t| r.session.timestamp >= t))
+            .filter(|r| until_dt.is_none_or(|t| r.session.timestamp <= t))
             .take(limit)
             .map(|r| {
                 // Load full session to get messages
                 let session = parser::parse_session_file(&r.session.file_path)
                     .unwrap_or(r.session.clone());
 
-                // Find messages that match the query (case-insensitive)
-                let query_lower = query.to_lowercase();
-                let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
-
-                let mut scored_messages: Vec<(usize, &Message)> = session
+                // Filter and score messages in one pass (avoids repeated to_lowercase in sort)
+                let mut scored_messages: Vec<(usize, usize, &Message)> = session
                     .messages
                     .iter()
                     .enumerate()
-                    .filter(|(_, m)| {
+                    .filter_map(|(idx, m)| {
                         let content_lower = m.content.to_lowercase();
-                        query_terms.iter().any(|term| content_lower.contains(term))
+                        let score: usize = query_terms
+                            .iter()
+                            .map(|t| content_lower.matches(t).count())
+                            .sum();
+                        if score > 0 {
+                            Some((idx, score, m))
+                        } else {
+                            None
+                        }
                     })
                     .collect();
 
-                // Sort by relevance (count of matching terms) and recency
-                scored_messages.sort_by(|(idx_a, msg_a), (idx_b, msg_b)| {
-                    let content_a = msg_a.content.to_lowercase();
-                    let content_b = msg_b.content.to_lowercase();
-                    let score_a: usize = query_terms
-                        .iter()
-                        .map(|t| content_a.matches(t).count())
-                        .sum();
-                    let score_b: usize = query_terms
-                        .iter()
-                        .map(|t| content_b.matches(t).count())
-                        .sum();
-
-                    // Higher score first, then more recent (higher index)
-                    score_b.cmp(&score_a).then_with(|| idx_b.cmp(idx_a))
+                // Sort by pre-computed score (higher first), then recency (higher index first)
+                scored_messages.sort_by(|(idx_a, score_a, _), (idx_b, score_b, _)| {
+                    score_b.cmp(score_a).then_with(|| idx_b.cmp(idx_a))
                 });
 
                 // Get top N messages, with context if requested
                 let relevant_messages = if context > 0 {
-                    collect_with_context(&session.messages, &scored_messages, context)
+                    // Convert to format expected by collect_with_context
+                    let for_context: Vec<(usize, &Message)> = scored_messages
+                        .iter()
+                        .map(|(idx, _, m)| (*idx, *m))
+                        .collect();
+                    collect_with_context(&session.messages, &for_context, context)
                 } else {
                     scored_messages
                         .into_iter()
                         .take(DEFAULT_MESSAGES_PER_SESSION)
-                        .map(|(_, m)| m.clone())
+                        .map(|(_, _, m)| m.clone())
                         .collect()
                 };
 
@@ -130,38 +132,41 @@ fn search_in_session(
     let query_lower = query.to_lowercase();
     let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
 
-    let mut scored_messages: Vec<(usize, &Message)> = session
+    // Filter and score messages in one pass (avoids repeated to_lowercase in sort)
+    let mut scored_messages: Vec<(usize, usize, &Message)> = session
         .messages
         .iter()
         .enumerate()
-        .filter(|(_, m)| {
+        .filter_map(|(idx, m)| {
             let content_lower = m.content.to_lowercase();
-            query_terms.iter().any(|term| content_lower.contains(term))
+            let score: usize = query_terms
+                .iter()
+                .map(|t| content_lower.matches(t).count())
+                .sum();
+            if score > 0 {
+                Some((idx, score, m))
+            } else {
+                None
+            }
         })
         .collect();
 
-    // Sort by relevance and recency
-    scored_messages.sort_by(|(idx_a, msg_a), (idx_b, msg_b)| {
-        let content_a = msg_a.content.to_lowercase();
-        let content_b = msg_b.content.to_lowercase();
-        let score_a: usize = query_terms
-            .iter()
-            .map(|t| content_a.matches(t).count())
-            .sum();
-        let score_b: usize = query_terms
-            .iter()
-            .map(|t| content_b.matches(t).count())
-            .sum();
-        score_b.cmp(&score_a).then_with(|| idx_b.cmp(idx_a))
+    // Sort by pre-computed score (higher first), then recency (higher index first)
+    scored_messages.sort_by(|(idx_a, score_a, _), (idx_b, score_b, _)| {
+        score_b.cmp(score_a).then_with(|| idx_b.cmp(idx_a))
     });
 
     // Return all matches (no limit for single session search)
     let relevant_messages = if context > 0 {
-        collect_with_context(&session.messages, &scored_messages, context)
+        let for_context: Vec<(usize, &Message)> = scored_messages
+            .iter()
+            .map(|(idx, _, m)| (*idx, *m))
+            .collect();
+        collect_with_context(&session.messages, &for_context, context)
     } else {
         scored_messages
             .into_iter()
-            .map(|(_, m)| m.clone())
+            .map(|(_, _, m)| m.clone())
             .collect()
     };
 
@@ -229,10 +234,10 @@ pub fn run_list(
         sessions: results
             .iter()
             // Filter by source
-            .filter(|r| source.map_or(true, |s| r.session.source == s))
+            .filter(|r| source.is_none_or(|s| r.session.source == s))
             // Filter by time
-            .filter(|r| since_dt.map_or(true, |t| r.session.timestamp >= t))
-            .filter(|r| until_dt.map_or(true, |t| r.session.timestamp <= t))
+            .filter(|r| since_dt.is_none_or(|t| r.session.timestamp >= t))
+            .filter(|r| until_dt.is_none_or(|t| r.session.timestamp <= t))
             .take(limit)
             .map(|r| r.session.to_summary())
             .collect(),
@@ -317,4 +322,107 @@ fn parse_time(s: &str) -> Result<DateTime<Utc>> {
         "Invalid time format: {}. Try '1 week ago', 'yesterday', or '2025-12-01'",
         s
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Datelike, Timelike};
+
+    #[test]
+    fn test_parse_time_yesterday() {
+        let result = parse_time("yesterday").unwrap();
+        let expected = Utc::now() - Duration::days(1);
+        // Allow 1 second tolerance for test execution time
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_today() {
+        let result = parse_time("today").unwrap();
+        let expected = Utc::now();
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_relative_days() {
+        let result = parse_time("3 days ago").unwrap();
+        let expected = Utc::now() - Duration::days(3);
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_relative_weeks() {
+        let result = parse_time("2 weeks ago").unwrap();
+        let expected = Utc::now() - Duration::weeks(2);
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_relative_hours() {
+        let result = parse_time("5 hours ago").unwrap();
+        let expected = Utc::now() - Duration::hours(5);
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_relative_minutes() {
+        let result = parse_time("30 minutes ago").unwrap();
+        let expected = Utc::now() - Duration::minutes(30);
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_relative_months() {
+        let result = parse_time("2 months ago").unwrap();
+        let expected = Utc::now() - Duration::days(60); // 2 * 30
+        assert!((result - expected).num_seconds().abs() < 2);
+    }
+
+    #[test]
+    fn test_parse_time_short_units() {
+        // Test abbreviated units
+        assert!(parse_time("1 hr ago").is_ok());
+        assert!(parse_time("5 min ago").is_ok());
+        assert!(parse_time("1 wk ago").is_ok());
+        assert!(parse_time("1 mo ago").is_ok());
+    }
+
+    #[test]
+    fn test_parse_time_date() {
+        let result = parse_time("2025-12-01").unwrap();
+        assert_eq!(result.year(), 2025);
+        assert_eq!(result.month(), 12);
+        assert_eq!(result.day(), 1);
+    }
+
+    #[test]
+    fn test_parse_time_iso8601() {
+        let result = parse_time("2025-12-01T14:30:00Z").unwrap();
+        assert_eq!(result.year(), 2025);
+        assert_eq!(result.month(), 12);
+        assert_eq!(result.day(), 1);
+        assert_eq!(result.hour(), 14);
+        assert_eq!(result.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_time_case_insensitive() {
+        assert!(parse_time("YESTERDAY").is_ok());
+        assert!(parse_time("Today").is_ok());
+        assert!(parse_time("3 DAYS AGO").is_ok());
+    }
+
+    #[test]
+    fn test_parse_time_whitespace() {
+        assert!(parse_time("  yesterday  ").is_ok());
+        assert!(parse_time("\tyesterday\n").is_ok());
+    }
+
+    #[test]
+    fn test_parse_time_invalid() {
+        assert!(parse_time("invalid").is_err());
+        assert!(parse_time("a week ago").is_err()); // "a" is not a number
+        assert!(parse_time("5 fortnights ago").is_err()); // unknown unit
+    }
 }
