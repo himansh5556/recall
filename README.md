@@ -1,4 +1,4 @@
-# recall
+# recall&nbsp;&nbsp;&nbsp;[![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 
 Search and resume your Claude Code and Codex CLI conversations.
 
