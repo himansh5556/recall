@@ -13,7 +13,7 @@ Search and resume your Claude Code conversations. Also supports Codex, OpenCode 
 brew install zippoxer/tap/recall
 ```
 
-**WinGet (Windows)**:
+**WinGet** (Windows):
 ```bash
 winget install zippoxer.recall
 ```
