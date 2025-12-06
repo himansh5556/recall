@@ -37,7 +37,8 @@ recall
 | Key | Action |
 |-----|--------|
 | `↑↓` | Navigate results |
-| `Pg↑/↓` | Scroll preview |
+| `Pg↑/↓` | Scroll messages |
+| `Space` | Expand message |
 | `Enter` | Resume conversation |
 | `Tab` | Copy session ID |
 | `/` | Toggle scope (folder/everywhere) |
