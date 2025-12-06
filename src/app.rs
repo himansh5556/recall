@@ -623,6 +623,11 @@ mod tests {
     /// Create a minimal App for testing navigation/expansion features
     /// This bypasses the index initialization for unit tests
     fn test_app() -> App {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static TEST_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let test_id = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let index_path = std::env::temp_dir().join(format!("recall_test_index_{}", test_id));
+
         App {
             query: String::new(),
             cursor: 0,
@@ -641,7 +646,7 @@ mod tests {
             should_quit: false,
             should_resume: None,
             should_copy: None,
-            index: SessionIndex::open_or_create(&std::env::temp_dir().join("recall_test_index")).unwrap(),
+            index: SessionIndex::open_or_create(&index_path).unwrap(),
             status: None,
             total_sessions: 0,
             index_rx: None,
